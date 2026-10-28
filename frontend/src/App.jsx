@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { supabase, supabaseConfigured } from './supabase.js';
 import PreferenceForm from './components/PreferenceForm';
@@ -13,6 +12,9 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [apiStatus, setApiStatus] = useState('Checking API…');
   const [trips, setTrips] = useState([]);
+  const [recommendations, setRecommendations] = useState(null);
+  const [selectedPreferences, setSelectedPreferences] = useState(null);
+  const [itinerary, setItinerary] = useState(null);
 
   // Check the backend and initialize authentication.
   useEffect(() => {
@@ -165,109 +167,68 @@ export default function App() {
   }
 }
 
-  // Save the trip and its preferences, then generate the structured prompt.
   async function handleFormSubmit(formData) {
     if (!supabase || !session) {
-      setMessage('Please sign in before saving your trip.');
+      setMessage('Please sign in before planning and saving your trip.');
       return;
     }
-
     setLoading(true);
     setMessage('');
-
+    setRecommendations(null);
+    setItinerary(null);
+    setSelectedPreferences(formData);
     try {
-      // 1. Convert the selected budget level to a numeric database value.
-      const budgetMapping = {
-        Low: 500,
-        Medium: 1500,
-        High: 5000,
-      };
-
-      const numericBudget = budgetMapping[formData.budget] ?? 1500;
-
-      // 2. Save the trip and all form preferences in Supabase.
-      const { data: savedTrip, error: dbError } = await supabase
-        .from('trips')
-        .insert([
-          {
-            user_id: session.user.id,
-            title: `Trip to ${formData.destination.trim()}`,
-            destination_name: formData.destination.trim(),
-            start_date: formData.startDate,
-            end_date: formData.endDate,
-            budget: numericBudget,
-            status: 'planned',
-            currency: 'USD',
-
-            // These preferences are stored together as JSONB.
-            preferences: {
-              destination: formData.destination.trim(),
-              startDate: formData.startDate,
-              endDate: formData.endDate,
-              travelers: Number(formData.travelers),
-              budgetLevel: formData.budget,
-              travelStyle: formData.travelStyle,
-              dietaryNeeds: formData.dietaryNeeds.trim(),
-            },
-          },
-        ])
-        .select()
-        .single();
-
-      if (dbError) {
-        throw new Error(
-          `Failed to save trip to database: ${dbError.message}`
-        );
+      if (!formData.destination) {
+        const response = await fetch(`${API_BASE}/api/recommend-destinations`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error?.message || 'Could not recommend destinations.');
+        setRecommendations(data);
+        setMessage('Choose a destination below to build your personalized itinerary.');
+      } else {
+        await createItinerary(formData.destination, formData);
       }
+    } catch (error) {
+      console.error('Trip planning error:', error);
+      setMessage(error.message || 'Could not plan this trip.');
+    } finally {
+      setLoading(false);
+    }
+  }
 
-      // 3. Generate the structured travel prompt using the backend.
-      const promptResponse = await fetch(
-        `${API_BASE}/api/generate-prompt`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(formData),
-        }
-      );
+  async function createItinerary(destination, preferences = selectedPreferences) {
+    if (!preferences) return;
+    setLoading(true);
+    setMessage('');
+    try {
+      const response = await fetch(`${API_BASE}/api/generate-itinerary`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...preferences, destination, selectedDestination: destination }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error?.message || 'Could not generate the itinerary.');
+      setItinerary(data.itinerary);
+      setRecommendations(null);
 
-      if (!promptResponse.ok) {
-        let details = '';
-
-        try {
-          const responseData = await promptResponse.json();
-          details =
-            responseData.error?.message ||
-            responseData.error ||
-            '';
-        } catch {
-          // The server may return a response without JSON.
-        }
-
-        throw new Error(
-          `Trip saved, but prompt generation failed${
-            details ? `: ${details}` : '.'
-          }`
-        );
-      }
-
-      setMessage(
-        'Trip preferences saved and AI prompt structured successfully!'
-      );
-
-      // 4. Refresh the list so the newly saved trip appears immediately.
+      // Persist the selected destination and original preferences after AI generation succeeds.
+      const { error: dbError } = await supabase.from('trips').insert([{
+        user_id: session.user.id,
+        title: `Trip to ${destination}`,
+        destination_name: destination,
+        start_date: preferences.startDate,
+        end_date: preferences.endDate,
+        budget: Number(preferences.budget || 0),
+        status: 'planned',
+        currency: preferences.currency || 'INR',
+        preferences: { ...preferences, destination },
+      }]);
+      if (dbError) console.warn('Itinerary generated but trip could not be saved:', dbError.message);
+      setMessage(dbError ? 'Itinerary generated, but saving to your trip list failed: ' + dbError.message : 'Your itinerary is ready and the trip was saved. Cost and transfer figures are estimates.');
       await loadTrips();
     } catch (error) {
-      console.error('Trip submission error:', error);
-      setMessage(
-        error.message ||
-          'An error occurred while processing your trip preferences.'
-      );
-
-      // The trip may already have been saved if prompt generation failed.
-      // Refresh the list to show the actual database state.
-      await loadTrips();
+      console.error('Itinerary generation error:', error);
+      setMessage(error.message || 'Could not generate the itinerary.');
     } finally {
       setLoading(false);
     }
@@ -394,7 +355,39 @@ export default function App() {
 
             {/* Activity 3.1: Preference form integration */}
             <div className="my-6">
-              <PreferenceForm onSubmit={handleFormSubmit} />
+              <PreferenceForm onSubmit={handleFormSubmit} disabled={loading} />
+              {recommendations && (
+                <section className="results-section" aria-live="polite">
+                  <p className="eyebrow">YOUR MATCHES</p><h3>Destinations picked for your trip</h3><p className="muted">{recommendations.summary}</p>
+                  <div className="destination-grid">
+                    {recommendations.destinations.map((destination) => (
+                      <article className="destination-card" key={destination.name}>
+                        <p className="eyebrow">{destination.region}</p><h4>{destination.name}</h4>
+                        <p>{destination.matchReasons.join(' · ')}</p>
+                        <strong>{destination.estimatedBudget.currency} {destination.estimatedBudget.min.toLocaleString()}–{destination.estimatedBudget.max.toLocaleString()} {destination.estimatedBudget.perPerson ? 'per person' : 'estimated total'}</strong>
+                        <p className="muted">{destination.highlights.join(' · ')}</p>
+                        {destination.caveats?.length > 0 && <p className="muted">{destination.caveats.join(' ')}</p>}
+                        <button type="button" onClick={() => createItinerary(destination.name)} disabled={loading}>Plan {destination.name} →</button>
+                      </article>
+                    ))}
+                  </div>
+                  <p className="muted">Budget estimates are AI-generated, not live quotes. {recommendations.assumptions?.join(' ')}</p>
+                </section>
+              )}
+              {itinerary && (
+                <section className="results-section itinerary-results" aria-live="polite">
+                  <p className="eyebrow">YOUR WANDERPLAN</p><h3>{itinerary.destination}: your itinerary</h3>
+                  <p>{itinerary.tripOverview}</p><p className="muted">{itinerary.vibeSummary}</p>
+                  <div className="budget-summary"><strong>Estimated trip cost: {itinerary.budgetSummary.currency} {itinerary.budgetSummary.estimatedTotal.toLocaleString()}</strong><p className="muted">{itinerary.budgetSummary.notes.join(' ')}</p></div>
+                  {itinerary.dailyItinerary.map((day) => (
+                    <article className="day-card" key={`${day.dayNumber}-${day.date}`}><p className="eyebrow">DAY {day.dayNumber} · {day.date}</p><h4>{day.title}</h4><p>{day.summary}</p>
+                      <div className="activity-list">{day.activities.map((activity, index) => <div className="activity-item" key={`${activity.title}-${index}`}><div className="activity-time">{activity.startTime}–{activity.endTime}</div><div><strong>{activity.title}</strong><p>{activity.description}</p><p className="muted">{activity.location} · {activity.durationMinutes} min · {itinerary.budgetSummary.currency} {activity.estimatedCost.toLocaleString()} {activity.travelMinutesFromPrevious ? `· ~${activity.travelMinutesFromPrevious} min transfer` : ''}</p>{activity.personalizationNote && <p className="muted">{activity.personalizationNote}</p>}</div></div>)}</div>
+                    </article>
+                  ))}
+                  <p className="muted">{itinerary.optimizationNotes?.join(' ')}</p>{itinerary.caveats?.length > 0 && <p className="muted">{itinerary.caveats.join(' ')}</p>}
+                  <button type="button" className="secondary" onClick={() => { setItinerary(null); setRecommendations(null); }}>Plan another trip</button>
+                </section>
+              )}
             </div>
 
             {loading && (
