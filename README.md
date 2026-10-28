@@ -1,70 +1,135 @@
-# Personalized Travel Itinerary Planner — Milestone 2
+# WanderPlan — Personalized Travel Itinerary Planner
 
-Database foundation and minimal full-stack scaffold:
-- React + Vite frontend
-- Express API (deployable to Vercel)
-- Supabase PostgreSQL schema, constraints, indexes, and Row Level Security
-- Server-side-only secrets
+🌐 **Live Demo:** https://personalized-travel-itinerary-plann-nine.vercel.app/
 
-## Prerequisites
-- Node.js 20+
+> ⚠️ **Development Deployment:** This application is deployed for development and demonstration purposes. It may occasionally be unavailable or some features may fail due to AI API rate limits, database limits, authentication email limits, or temporary service outages. Please keep this in mind while testing the application.
+
+## About the Project
+
+WanderPlan is a personalized travel itinerary planner designed to help users discover destinations and generate travel itineraries with the assistance of AI.
+
+The project combines a React frontend, a Node.js backend, Supabase services, and an AI API to provide a travel-planning experience.
+
+## Features
+
+- **AI-powered itinerary generation** — Generate personalized travel plans with AI.
+- **Destination recommendations** — Discover travel destinations.
+- **User authentication** — Sign in using Supabase magic-link authentication.
+- **Database integration** — Use Supabase for database-related functionality.
+- **Full-stack architecture** — Separate frontend and backend applications.
+
+*Feature availability may vary while the project is under development.*
+
+## Tech Stack
+
+| Technology | Purpose |
+|---|---|
+| React | Frontend UI |
+| Vite | Frontend development and build tooling |
+| Node.js | Backend runtime |
+| Express.js | Backend API |
+| Supabase | Authentication and PostgreSQL database |
+| Groq API | AI-powered functionality |
+| Vercel | Frontend deployment |
+| Render | Backend deployment |
+
+## Live Application
+
+Visit the application:
+
+**https://personalized-travel-itinerary-plann-nine.vercel.app/**
+
+The frontend communicates with a separately deployed backend API. Availability depends on the hosting services and the external services used by the application.
+
+## Known Limitations
+
+- AI requests may fail when the AI provider's API rate limit or usage quota is reached.
+- Database operations may be affected by database usage limits or temporary service issues.
+- Sign-in emails may be delayed or temporarily unavailable due to authentication email rate limits.
+- The backend may take some time to respond after a period of inactivity.
+- The application is a work in progress, so bugs and incomplete features may occur.
+
+These limitations are expected for a development deployment and do not necessarily indicate a permanent issue with the application.
+
+## Running Locally
+
+### Prerequisites
+
+- Node.js and npm
 - A Supabase project
-- Git (recommended)
+- A Groq API key
 
-## 1. Create the Supabase project
-Create a project at https://supabase.com/dashboard. Open SQL Editor and run
-`supabase/migrations/001_initial_schema.sql` in one go.
+### 1. Clone the repository
 
-The migration creates:
-- `profiles`
-- `preferences`
-- `destinations`
-- `trips`
-- `itinerary_days`
-- `itinerary_activities`
-- indexes, updated-at triggers, RLS policies, and least-privilege grants
+```bash
+git clone <YOUR_GITHUB_REPOSITORY_URL>
+cd <YOUR_PROJECT_DIRECTORY>
+```
 
-The `profiles` row is created automatically when a Supabase Auth user is created.
-Use Supabase Auth for registration/login in a later milestone.
+Replace the placeholders with your repository URL and project directory.
 
-## 2. Configure the frontend
+### 2. Configure the backend
+
+Navigate to the backend directory and install dependencies:
+
+```bash
+cd backend
+npm install
+```
+
+Create a `.env` file in the backend directory and configure the environment variables required by the application.
+
+For example:
+
+```env
+NODE_ENV=development
+FRONTEND_ORIGIN=http://localhost:5173
+SUPABASE_URL=your_supabase_url
+SUPABASE_SECRET_KEY=your_supabase_secret_key
+GROQ_API_KEY=your_groq_api_key
+```
+
+Use the variable names required by the actual backend configuration. Never commit your `.env` file or expose secret keys publicly.
+
+Start the backend:
+
+```bash
+npm start
+```
+
+### 3. Configure the frontend
+
+Open a separate terminal:
+
 ```bash
 cd frontend
-cp .env.example .env
 npm install
-npm run dev
 ```
-Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` from Supabase Project Settings → API Keys.
-The publishable key is designed for browser use. RLS must remain enabled.
 
-## 3. Configure the backend
+Create a `.env` file in the frontend directory:
+
+```env
+VITE_API_BASE_URL=http://localhost:10000
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
+```
+
+Make sure the API URL matches the port on which your backend is running.
+
+Start the frontend development server:
+
 ```bash
-cd ../backend
-cp .env.example .env
-npm install
 npm run dev
 ```
-Set `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `FRONTEND_ORIGIN`.
-`SUPABASE_SECRET_KEY` is optional for the current health-check-only backend; it is included for future trusted server-side operations.
-Do not put it in `frontend/.env`, do not prefix it with `VITE_`, and never commit either `.env` file.
-For legacy Supabase projects, the dashboard may expose a `service_role` key instead of a `sb_secret_...` key. Treat either as highly sensitive.
 
-## 4. Verify
-- Frontend: http://localhost:5173
-- API health: http://localhost:3000/api/health
-- API config check: http://localhost:3000/api/config-status (does not return secrets)
+Open the local URL displayed by Vite, usually:
 
-## 5. Deployment notes
-- Frontend: deploy `frontend` to Render as a Static Site; build command `npm install && npm run build`; publish directory `dist`. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`.
-- Backend: deploy `backend` to Vercel. Set the Root Directory to `backend`, and add `SUPABASE_URL`, `SUPABASE_SECRET_KEY` (if used), `FRONTEND_ORIGIN`, and `NODE_ENV=production`. `api/index.js` exports the Express app for Vercel.
-- Set `FRONTEND_ORIGIN` to the exact production frontend origin, without a trailing slash.
-- If using Supabase Auth redirects, add local and production URLs in Supabase Authentication → URL Configuration.
+http://localhost:5173
 
-## Security checklist
-- RLS is enabled on every user-facing table.
-- `anon` receives no table privileges in this schema.
-- `authenticated` receives only necessary CRUD privileges on user-owned tables and read-only access to active destinations.
-- `destinations` writes are reserved for trusted backend/admin operations.
-- Never expose Supabase secret/service-role keys or AI-provider keys in frontend bundles.
-- Use a separate test project before applying schema changes to production.
-- Back up/commit SQL migrations; dashboard SQL is not a substitute for source control.
+## Project Status
+
+WanderPlan is an ongoing development project. Features, reliability, and deployment configuration may change as development continues.
+
+## Disclaimer
+
+This project is intended for learning, development, and demonstration purposes. AI-generated recommendations and itineraries should be reviewed before relying on them for real-world travel decisions.
