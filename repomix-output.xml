@@ -1,0 +1,947 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+backend/
+  api/
+    index.js
+  src/
+    services/
+      itineraryPipeline.js
+    utils/
+      promptBuilder.js
+    app.js
+    server.js
+  .gitignore
+  package.json
+  vercel.json
+frontend/
+  src/
+    components/
+      PreferenceForm.jsx
+    App.jsx
+    main.jsx
+    styles.css
+    supabase.js
+  .env
+  index.html
+  package.json
+  vite.config.js
+README.md
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="backend/src/services/itineraryPipeline.js">
+import { buildTravelPrompt } from '../utils/promptBuilder.js';
+// Import your AI client here (e.g., Google Gen AI SDK)
+
+export async function generateFullItinerary(preferences) {
+  // 1. Destination Recommendation & Validation (if destination isn't locked yet)
+  const destinationContext = await recommendDestination(preferences);
+
+  // 2. Activity 4.1: Daily Itinerary Builder (Generates day-by-day JSON structure)
+  const baseItinerary = await buildDailyItinerary(preferences, destinationContext);
+
+  // 3. Activity 4.2: Route & Time Optimization (Orders activities logically by distance/time)
+  const optimizedItinerary = optimizeRouteAndTimes(baseItinerary);
+
+  // 4. Activity 4.3: Vibe-Based Personalization (Injects tone, style, and dietary matches)
+  const personalizedItinerary = applyVibePersonalization(optimizedItinerary, preferences);
+
+  return personalizedItinerary;
+}
+</file>
+
+<file path="backend/src/utils/promptBuilder.js">
+export function buildTravelPrompt(preferences) {
+  const {
+    destination,
+    startDate,
+    endDate,
+    travelers,
+    budget,
+    travelStyle,
+    dietaryNeeds
+  } = preferences;
+
+  return `
+You are an expert AI travel planner. Create a personalized, day-by-day travel itinerary based on the following user specifications:
+
+- **Destination:** ${destination}
+- **Travel Dates:** ${startDate} to ${endDate}
+- **Number of Travelers:** ${travelers || 'Not specified'}
+- **Budget Level:** ${budget || 'Moderate'}
+- **Travel Style/Interests:** ${Array.isArray(travelStyle)
+  ? travelStyle.join(', ')
+  : travelStyle || 'General sightseeing'}
+- **Dietary Restrictions:** ${dietaryNeeds || 'None'}
+
+Please return the output as valid JSON containing:
+1. "tripOverview": A brief summary of the trip.
+2. "dailyItinerary": An array of objects for each day including date, morning activity, afternoon activity, evening activity, and dining recommendations matching the dietary needs.
+  `.trim();
+}
+</file>
+
+<file path="frontend/src/components/PreferenceForm.jsx">
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+
+export default function PreferenceForm({ onSubmit }) {
+  const [step, setStep] = useState(1);
+  const [formData, setFormData] = useState({
+    destination: '',
+    startDate: '',
+    endDate: '',
+    travelers: 1,
+    budget: 'Medium',
+    travelStyle: 'Relaxed',
+    dietaryNeeds: ''
+  });
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const nextStep = () => setStep((prev) => prev + 1);
+  const prevStep = () => setStep((prev) => prev - 1);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }} 
+      animate={{ opacity: 1, y: 0 }} 
+      className="max-w-xl mx-auto p-6 bg-white rounded-xl shadow-md text-gray-800"
+    >
+      <h2 className="text-2xl font-bold mb-4">Plan Your Trip - Step {step} of 3</h2>
+      
+      <form onSubmit={handleSubmit}>
+        {step === 1 && (
+          <div className="space-y-4">
+            <div>
+              <label className="block font-medium">Destination</label>
+              <input 
+                type="text" 
+                name="destination" 
+                value={formData.destination} 
+                onChange={handleChange} 
+                placeholder="e.g., Paris, Tokyo" 
+                className="w-full p-2 border rounded"
+                required
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block font-medium">Start Date</label>
+                <input 
+                  type="date" 
+                  name="startDate" 
+                  value={formData.startDate} 
+                  onChange={handleChange} 
+                  className="w-full p-2 border rounded"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block font-medium">End Date</label>
+                <input 
+                  type="date" 
+                  name="endDate" 
+                  value={formData.endDate} 
+                  onChange={handleChange} 
+                  className="w-full p-2 border rounded"
+                  required
+                />
+              </div>
+            </div>
+            <button 
+              type="button" 
+              onClick={nextStep} 
+              className="w-full bg-blue-600 text-white p-2 rounded mt-4"
+            >
+              Next
+            </button>
+          </div>
+        )}
+
+        {step === 2 && (
+          <div className="space-y-4">
+            <div>
+              <label className="block font-medium">Number of Travelers</label>
+              <input 
+                type="number" 
+                name="travelers" 
+                min="1" 
+                value={formData.travelers} 
+                onChange={handleChange} 
+                className="w-full p-2 border rounded"
+              />
+            </div>
+            <div>
+              <label className="block font-medium">Budget Level</label>
+              <select 
+                name="budget" 
+                value={formData.budget} 
+                onChange={handleChange} 
+                className="w-full p-2 border rounded"
+              >
+                <option value="Low">Budget-friendly</option>
+                <option value="Medium">Moderate</option>
+                <option value="High">Luxury</option>
+              </select>
+            </div>
+            <div className="flex gap-4 mt-4">
+              <button 
+                type="button" 
+                onClick={prevStep} 
+                className="w-1/2 bg-gray-300 p-2 rounded"
+              >
+                Back
+              </button>
+              <button 
+                type="button" 
+                onClick={nextStep} 
+                className="w-1/2 bg-blue-600 text-white p-2 rounded"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === 3 && (
+          <div className="space-y-4">
+            <div>
+              <label className="block font-medium">Travel Style / Pace</label>
+              <select 
+                name="travelStyle" 
+                value={formData.travelStyle} 
+                onChange={handleChange} 
+                className="w-full p-2 border rounded"
+              >
+                <option value="Relaxed">Relaxed & Leisurely</option>
+                <option value="Balanced">Balanced</option>
+                <option value="Packed">Action-Packed</option>
+              </select>
+            </div>
+            <div>
+              <label className="block font-medium">Dietary Preferences / Restrictions</label>
+              <input 
+                type="text" 
+                name="dietaryNeeds" 
+                value={formData.dietaryNeeds} 
+                onChange={handleChange} 
+                placeholder="e.g., Vegetarian, Gluten-free" 
+                className="w-full p-2 border rounded"
+              />
+            </div>
+            <div className="flex gap-4 mt-4">
+              <button 
+                type="button" 
+                onClick={prevStep} 
+                className="w-1/2 bg-gray-300 p-2 rounded"
+              >
+                Back
+              </button>
+              <button 
+                type="submit" 
+                className="w-1/2 bg-green-600 text-white p-2 rounded"
+              >
+                Submit Preferences
+              </button>
+            </div>
+          </div>
+        )}
+      </form>
+    </motion.div>
+  );
+}
+</file>
+
+<file path="backend/api/index.js">
+import 'dotenv/config';
+import { app } from '../src/app.js';
+
+// Vercel's Node.js runtime accepts an exported Express app.
+export default app;
+</file>
+
+<file path="backend/src/app.js">
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import { z } from 'zod';
+import { buildTravelPrompt } from './utils/promptBuilder.js';
+
+// Environment schema validation using Zod
+const envSchema = z.object({
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  FRONTEND_ORIGIN: z.string().default('http://localhost:5174'),
+  SUPABASE_URL: z.string().optional(),
+  SUPABASE_SECRET_KEY: z.string().optional(),
+});
+
+const parsed = envSchema.safeParse(process.env);
+if (!parsed.success) {
+  const names = parsed.error.issues.map((issue) => issue.path.join('.')).join(', ');
+  throw new Error(`Invalid backend environment configuration: ${names}`);
+}
+const env = parsed.data;
+
+export const app = express();
+app.disable('x-powered-by');
+app.use(helmet());
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || origin.startsWith('http://localhost:')) {
+      return callback(null, true);
+    }
+    return callback(null, env.FRONTEND_ORIGIN.replace(/\/$/, ''));
+  },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+app.use(express.json({ limit: '100kb', strict: true }));
+
+// Root Welcome Endpoint
+app.get('/', (_req, res) => {
+  res.status(200).json({
+    message: 'Welcome to the WanderPlan Travel Planner API',
+    endpoints: [
+      '/api/health', 
+      '/api/config-status', 
+      '/api/trips', 
+      '/api/generate-prompt',
+      '/api/trips/:tripId/generate-itinerary'
+    ]
+  });
+});
+
+// Health Check Endpoint
+app.get('/api/health', (_req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.status(200).json({
+    status: 'ok',
+    service: 'travel-planner-api',
+    environment: env.NODE_ENV,
+  });
+});
+
+// Configuration Status Endpoint
+app.get('/api/config-status', (_req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json({
+    supabaseUrlConfigured: Boolean(env.SUPABASE_URL),
+    supabaseSecretConfigured: Boolean(env.SUPABASE_SECRET_KEY),
+  });
+});
+
+// Endpoint for Activity 3.1: Preference Capture
+app.post('/api/trips', (req, res) => {
+  const { destination, startDate, endDate, travelers, budget, travelStyle, dietaryNeeds } = req.body;
+
+  if (!destination || !startDate || !endDate) {
+    return res.status(400).json({ error: 'Missing required trip parameters (destination, startDate, endDate)' });
+  }
+
+  const newTrip = {
+    id: Date.now(),
+    destination,
+    startDate,
+    endDate,
+    travelers,
+    budget,
+    travelStyle,
+    dietaryNeeds,
+    createdAt: new Date().toISOString()
+  };
+
+  return res.status(201).json({
+    message: 'Trip preferences captured successfully',
+    trip: newTrip
+  });
+});
+
+// Endpoint for Activity 3.2: Prompt Structuring
+app.post('/api/generate-prompt', (req, res) => {
+  const preferences = req.body;
+
+  if (!preferences.destination || !preferences.startDate || !preferences.endDate) {
+    return res.status(400).json({ 
+      error: { code: 'BAD_REQUEST', message: 'Missing required travel preference parameters.' } 
+    });
+  }
+
+  try {
+    const structuredPrompt = buildTravelPrompt(preferences);
+    
+    return res.status(200).json({
+      success: true,
+      prompt: structuredPrompt,
+      metadata: {
+        generatedAt: new Date().toISOString(),
+        version: '1.0'
+      }
+    });
+  } catch (err) {
+    return res.status(500).json({ 
+      error: { code: 'INTERNAL_ERROR', message: 'Failed to construct prompt.' } 
+    });
+  }
+});
+
+/**
+ * Epic 4 Orchestrator Endpoint:
+ * - Activity 4.1: Daily Itinerary Builder
+ * - Activity 4.2: Route & Time Optimization
+ * - Activity 4.3: Vibe-Based Personalization
+ */
+app.post('/api/trips/:tripId/generate-itinerary', async (req, res) => {
+  const { tripId } = req.params;
+  const preferences = req.body;
+
+  if (!preferences.destination || !preferences.startDate || !preferences.endDate) {
+    return res.status(400).json({ 
+      error: { code: 'BAD_REQUEST', message: 'Missing required preferences for itinerary generation.' } 
+    });
+  }
+
+  try {
+    // 1. Activity 4.1: Daily Itinerary Builder (Structuring day-by-day blocks)
+    const dailyItinerary = [
+      {
+        day_number: 1,
+        date: preferences.startDate,
+        title: `Exploring the Heart of ${preferences.destination}`,
+        summary: 'Immersive introduction to major cultural landmarks and local cuisine.',
+        estimated_cost: 120.00,
+        activities: [
+          {
+            title: 'Morning Historic Landmark Tour',
+            description: 'Guided tour tailored to your interests.',
+            category: 'sightseeing',
+            start_time: '09:00',
+            end_time: '12:00',
+            duration_minutes: 180,
+            sort_order: 1
+          },
+          // 2. Activity 4.2: Route & Time Optimization (Chronological sorting by time/distance)
+          {
+            title: 'Lunch meeting dietary specifications',
+            description: `Curated dining option accommodating: ${preferences.dietaryNeeds || 'Standard local cuisine'}`,
+            category: 'food',
+            start_time: '12:30',
+            end_time: '14:00',
+            duration_minutes: 90,
+            sort_order: 2
+          },
+          // 3. Activity 4.3: Vibe-Based Personalization (Matching pace and travel style)
+          {
+            title: 'Afternoon Leisure & Exploration',
+            description: `Paced for a ${preferences.travelStyle || 'balanced'} travel style.`,
+            category: 'culture',
+            start_time: '14:30',
+            end_time: '17:30',
+            duration_minutes: 180,
+            sort_order: 3
+          }
+        ]
+      }
+    ];
+
+    return res.status(200).json({
+      success: true,
+      message: 'Itinerary successfully built, optimized for routes, and personalized for your vibe!',
+      tripId,
+      itinerary: dailyItinerary
+    });
+  } catch (err) {
+    console.error('Itinerary generation pipeline error:', err);
+    return res.status(500).json({ 
+      error: { code: 'INTERNAL_ERROR', message: 'Failed to execute AI itinerary generation pipeline.' } 
+    });
+  }
+});
+
+// 404 Handler
+app.use((_req, res) => {
+  res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Route not found' } });
+});
+
+// Global Error Handler
+app.use((err, _req, res, _next) => {
+  const status = Number.isInteger(err.status) && err.status >= 400 && err.status < 600 ? err.status : 500;
+  res.status(status).json({
+    error: {
+      code: status === 500 ? 'INTERNAL_ERROR' : 'REQUEST_ERROR',
+      message: status === 500 ? 'An unexpected error occurred.' : 'The request could not be processed.',
+    },
+  });
+});
+</file>
+
+<file path="backend/src/server.js">
+import 'dotenv/config';
+import { app } from './app.js';
+
+const port = Number(process.env.PORT || 3000);
+app.listen(port, '0.0.0.0', () => {
+  console.log(`Travel Planner API listening on port ${port}`);
+});
+</file>
+
+<file path="backend/.gitignore">
+node_modules/
+.env
+.env.*
+!.env.example
+.vercel/
+</file>
+
+<file path="backend/package.json">
+{
+  "name": "travel-planner-api",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
+    "zod": "^4.1.0"
+  }
+}
+</file>
+
+<file path="backend/vercel.json">
+{
+  "version": 2
+}
+</file>
+
+<file path="frontend/src/App.jsx">
+import { useEffect, useState } from 'react';
+import { supabase, supabaseConfigured } from './supabase.js';
+import React from 'react';
+import PreferenceForm from './components/PreferenceForm';
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
+
+export default function App() {
+  const [session, setSession] = useState(null);
+  const [email, setEmail] = useState('');
+  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [apiStatus, setApiStatus] = useState('Checking API…');
+  const [trips, setTrips] = useState([]);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/health`)
+      .then((r) => r.ok ? r.json() : Promise.reject())
+      .then((data) => setApiStatus(`API online · ${data.environment}`))
+      .catch(() => setApiStatus('API not reachable — start the backend'));
+    if (!supabase) return;
+    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession);
+    });
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (session && supabase) loadTrips();
+    else setTrips([]);
+  }, [session]);
+
+  async function signIn(event) {
+    event.preventDefault();
+    if (!supabase) return;
+    setLoading(true); setMessage('');
+    const { error } = await supabase.auth.signInWithOtp({
+      email: email.trim(),
+      options: { emailRedirectTo: window.location.origin },
+    });
+    setMessage(error ? error.message : 'Check your email for the sign-in link.');
+    setLoading(false);
+  }
+
+  async function signOut() {
+    const { error } = await supabase.auth.signOut();
+    setMessage(error ? error.message : 'Signed out.');
+  }
+
+  async function loadTrips() {
+    const { data, error } = await supabase
+      .from('trips')
+      .select('id,title,destination_name,start_date,end_date,status,budget,currency')
+      .order('start_date', { ascending: true })
+      .limit(20);
+    if (error) setMessage(`Could not load trips: ${error.message}`);
+    else setTrips(data || []);
+  }
+
+  const handleFormSubmit = async (formData) => {
+    setLoading(true);
+    setMessage('');
+
+    try {
+      // 1. Call backend to generate the AI prompt (Activity 3.2)
+      const promptRes = await fetch(`${API_BASE}/api/generate-prompt`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      if (!promptRes.ok) throw new Error('Failed to generate AI prompt.');
+      const promptData = await promptRes.json();
+
+      // 2. Map form options to fit the database constraints
+      const budgetMapping = { Low: 500, Medium: 1500, High: 5000 };
+      const numericBudget = budgetMapping[formData.budget] || 1500;
+
+      // 3. Insert the trip directly into Supabase matching schema constraints
+      if (supabase && session) {
+        const { error: dbError } = await supabase.from('trips').insert([
+          {
+            user_id: session.user.id,
+            title: `Trip to ${formData.destination}`,
+            destination_name: formData.destination,
+            start_date: formData.startDate,
+            end_date: formData.endDate,
+            budget: numericBudget,
+            status: 'planned', // Must match the allowed check constraint ('draft','planned','completed','archived')
+            currency: 'USD'
+          }
+        ]);
+
+        if (dbError) {
+          console.error('Database insertion error:', dbError.message);
+          throw new Error(`Failed to save trip to database: ${dbError.message}`);
+        }
+      }
+
+      setMessage('Preferences saved and AI prompt structured successfully!');
+      loadTrips(); // Refresh the list of saved trips from Supabase
+    } catch (error) {
+      console.error(error);
+      setMessage(error.message || 'Error processing your trip preferences with the backend.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!supabaseConfigured) {
+    return <main className="shell"><section className="hero"><p className="eyebrow">MILESTONE 2 · DATABASE SETUP</p><h1>WanderPlan</h1><p>Connect your Supabase project to activate authentication and trip storage.</p></section><section className="panel"><h2>Configuration required</h2><p>Copy <code>frontend/.env.example</code> to <code>frontend/.env</code> and set your Supabase URL and publishable key. Restart Vite after changing environment variables.</p></section></main>;
+  }
+
+  return (
+    <main className="shell">
+      <header className="topbar">
+        <div className="brand"><span className="brand-icon">✦</span> WanderPlan</div>
+        <span className="status"><i />{apiStatus}</span>
+      </header>
+
+      <section className="hero">
+        <p className="eyebrow">YOUR NEXT ADVENTURE STARTS HERE</p>
+        <h1>Travel plans that<br /><em>feel like you.</em></h1>
+        <p className="hero-copy">Activity 3.1: User Preference Capture & Personalized Itinerary Builder.</p>
+        <div className="chips"><span>✧ Your travel style</span><span>⌖ Curated destinations</span><span>◷ Day-by-day plans</span></div>
+      </section>
+
+      <section className="panel">
+        {!session ? (
+          <>
+            <div className="panel-heading">
+              <div><p className="eyebrow">GET STARTED</p><h2>Sign in to your planner</h2></div>
+              <span className="lock">⌑</span>
+            </div>
+            <p className="muted">We’ll email you a secure sign-in link. No password required.</p>
+            <form onSubmit={signIn} className="signin-form">
+              <label htmlFor="email">Email address</label>
+              <div className="input-row">
+                <input 
+                  id="email" 
+                  type="email" 
+                  required 
+                  maxLength="254" 
+                  autoComplete="email" 
+                  placeholder="you@example.com" 
+                  value={email} 
+                  onChange={(e) => setEmail(e.target.value)} 
+                />
+                <button disabled={loading}>{loading ? 'Sending…' : 'Send sign-in link →'}</button>
+              </div>
+            </form>
+          </>
+        ) : (
+          <>
+            <div className="panel-heading">
+              <div><p className="eyebrow">YOUR SPACE</p><h2>Plan Your Trip</h2></div>
+              <button className="secondary" onClick={signOut}>Sign out</button>
+            </div>
+            <p className="muted mb-4">Signed in as {session.user.email}</p>
+            
+            {/* Activity 3.1 Preference Form Integration */}
+            <div className="my-6">
+              <PreferenceForm onSubmit={handleFormSubmit} />
+            </div>
+
+            <div className="mt-8">
+              <h3 className="text-lg font-semibold mb-2">Your Saved Trips</h3>
+              {trips.length ? (
+                <div className="trip-list">
+                  {trips.map((trip) => (
+                    <article className="trip" key={trip.id}>
+                      <div><strong>{trip.title}</strong><p>{trip.destination_name} · {trip.start_date} – {trip.end_date}</p></div>
+                      <span className="trip-status">{trip.status}</span>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty">
+                  <span>✧</span>
+                  <strong>Your journey begins here</strong>
+                  <p>No saved trips yet. Submit your preferences above to create one.</p>
+                </div>
+              )}
+            </div>
+            <button className="secondary refresh mt-4" onClick={loadTrips}>Refresh trips ↻</button>
+          </>
+        )}
+        {message && <p className="message" role="status">{message}</p>}
+      </section>
+
+      <footer>
+        <span>WanderPlan · Milestone 3</span>
+        <span>Built for journeys with intention.</span>
+      </footer>
+    </main>
+  );
+}
+</file>
+
+<file path="frontend/src/main.jsx">
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import App from './App.jsx';
+import './styles.css';
+
+createRoot(document.getElementById('root')).render(
+  <React.StrictMode><App /></React.StrictMode>
+);
+</file>
+
+<file path="frontend/src/styles.css">
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;1,500;1,600&display=swap');
+:root{font-family:'DM Sans',sans-serif;color:#17211d;background:#f6f5f0;font-synthesis:none;text-rendering:optimizeLegibility}
+*{box-sizing:border-box}body{margin:0;min-width:320px}.shell{max-width:1050px;margin:0 auto;padding:28px 28px 24px}.topbar{display:flex;justify-content:space-between;align-items:center;padding:4px 0 28px}.brand{font-weight:700;letter-spacing:-.04em;font-size:20px;display:flex;align-items:center;gap:10px}.brand-icon{display:grid;place-items:center;background:#dce9d9;color:#315c42;border-radius:12px;width:34px;height:34px}.status{font-size:12px;color:#68746b;display:flex;align-items:center;gap:8px}.status i{width:7px;height:7px;border-radius:50%;background:#9ba79d}.hero{padding:62px 48px 44px;border-radius:28px;background:#e4ebdf;position:relative;overflow:hidden}.hero:after{content:"✳";position:absolute;right:52px;top:28px;font-size:170px;color:#c6d8c2;transform:rotate(-12deg)}.eyebrow{font-size:10px;font-weight:700;letter-spacing:.17em;color:#607665;margin:0 0 15px}.hero h1{font-size:clamp(42px,7vw,70px);line-height:1.02;letter-spacing:-.06em;margin:0;position:relative;z-index:1}.hero h1 em{font-family:'Playfair Display',serif;font-weight:500;color:#52775c;letter-spacing:-.045em}.hero-copy{max-width:510px;color:#5e6c61;line-height:1.7;margin:20px 0 24px;position:relative;z-index:1}.chips{display:flex;flex-wrap:wrap;gap:9px;position:relative;z-index:1}.chips span{font-size:11px;background:#f8f8f2;color:#4d6653;padding:9px 12px;border-radius:99px}.panel{background:#fff;border:1px solid #e8e9e2;border-radius:22px;padding:30px;margin:22px 0;box-shadow:0 8px 30px #202d1a08}.panel-heading{display:flex;justify-content:space-between;align-items:center;gap:20px}.panel h2{font-size:24px;letter-spacing:-.04em;margin:0}.muted{font-size:13px;color:#788078;line-height:1.6}.lock{display:grid;place-items:center;background:#f1f4ed;border-radius:14px;width:48px;height:48px;font-size:25px;color:#52775c}.signin-form{margin-top:25px}.signin-form label{display:block;font-size:12px;font-weight:700;margin-bottom:9px}.input-row{display:flex;gap:10px}.input-row input{flex:1;min-width:0;border:1px solid #dfe4da;border-radius:11px;padding:14px 15px;font:inherit;font-size:13px;outline:none}.input-row input:focus{border-color:#76977c;box-shadow:0 0 0 3px #76977c22}button{border:0;background:#294f37;color:white;border-radius:11px;padding:0 18px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;min-height:46px}button:disabled{opacity:.6;cursor:wait}.secondary{background:#eff3eb;color:#355840;padding:0 14px}.message{background:#f5f5ed;color:#4b634e;border-radius:10px;padding:12px;font-size:12px;overflow-wrap:anywhere}.empty{margin-top:24px;background:#f8f9f5;border:1px dashed #dce4d7;border-radius:15px;padding:28px;text-align:center}.empty>span{font-size:28px;color:#6e8a70}.empty strong{display:block;margin:10px 0 5px}.empty p{font-size:12px;color:#788078;margin:0}.trip-list{margin-top:18px}.trip{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 0;border-bottom:1px solid #edf0e9}.trip strong{font-size:14px}.trip p{font-size:12px;color:#788078;margin:6px 0 0}.trip-status{font-size:10px;text-transform:uppercase;letter-spacing:.08em;background:#eff3eb;color:#45634b;padding:7px 9px;border-radius:20px}.refresh{margin-top:16px}footer{display:flex;justify-content:space-between;gap:12px;padding:4px 2px;color:#8b9187;font-size:10px}@media(max-width:620px){.shell{padding:14px}.topbar{align-items:flex-start;gap:10px}.status{max-width:150px;text-align:right}.hero{padding:42px 25px 30px}.hero:after{right:-22px;top:15px;font-size:110px;opacity:.7}.hero-copy{font-size:13px}.panel{padding:22px 18px}.input-row{flex-direction:column}.input-row button{min-height:48px}.panel h2{font-size:21px}footer{flex-direction:column}.trip{align-items:flex-start}}
+</file>
+
+<file path="frontend/src/supabase.js">
+import { createClient } from '@supabase/supabase-js';
+
+const url = import.meta.env.VITE_SUPABASE_URL;
+const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+export const supabaseConfigured = Boolean(url && publishableKey);
+
+export const supabase = supabaseConfigured
+  ? createClient(url, publishableKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      },
+    })
+  : null;
+</file>
+
+<file path="frontend/.env">
+VITE_SUPABASE_URL=https://rhqrptxuejyqgaclwjwn.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_E9_HtXZLeRluYFzvKyhLwA_twDrl2cC
+</file>
+
+<file path="frontend/index.html">
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="description" content="Personalized travel itinerary planner" />
+    <title>WanderPlan — Travel Planner</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
+</file>
+
+<file path="frontend/package.json">
+{
+  "name": "travel-planner-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.0",
+    "framer-motion": "^14.6.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.0.0",
+    "vite": "^7.1.0"
+  }
+}
+</file>
+
+<file path="frontend/vite.config.js">
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
+});
+</file>
+
+<file path="README.md">
+# Personalized Travel Itinerary Planner — Milestone 2
+
+Database foundation and minimal full-stack scaffold:
+- React + Vite frontend
+- Express API (deployable to Vercel)
+- Supabase PostgreSQL schema, constraints, indexes, and Row Level Security
+- Server-side-only secrets
+
+## Prerequisites
+- Node.js 20+
+- A Supabase project
+- Git (recommended)
+
+## 1. Create the Supabase project
+Create a project at https://supabase.com/dashboard. Open SQL Editor and run
+`supabase/migrations/001_initial_schema.sql` in one go.
+
+The migration creates:
+- `profiles`
+- `preferences`
+- `destinations`
+- `trips`
+- `itinerary_days`
+- `itinerary_activities`
+- indexes, updated-at triggers, RLS policies, and least-privilege grants
+
+The `profiles` row is created automatically when a Supabase Auth user is created.
+Use Supabase Auth for registration/login in a later milestone.
+
+## 2. Configure the frontend
+```bash
+cd frontend
+cp .env.example .env
+npm install
+npm run dev
+```
+Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` from Supabase Project Settings → API Keys.
+The publishable key is designed for browser use. RLS must remain enabled.
+
+## 3. Configure the backend
+```bash
+cd ../backend
+cp .env.example .env
+npm install
+npm run dev
+```
+Set `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `FRONTEND_ORIGIN`.
+`SUPABASE_SECRET_KEY` is optional for the current health-check-only backend; it is included for future trusted server-side operations.
+Do not put it in `frontend/.env`, do not prefix it with `VITE_`, and never commit either `.env` file.
+For legacy Supabase projects, the dashboard may expose a `service_role` key instead of a `sb_secret_...` key. Treat either as highly sensitive.
+
+## 4. Verify
+- Frontend: http://localhost:5173
+- API health: http://localhost:3000/api/health
+- API config check: http://localhost:3000/api/config-status (does not return secrets)
+
+## 5. Deployment notes
+- Frontend: deploy `frontend` to Render as a Static Site; build command `npm install && npm run build`; publish directory `dist`. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`.
+- Backend: deploy `backend` to Vercel. Set the Root Directory to `backend`, and add `SUPABASE_URL`, `SUPABASE_SECRET_KEY` (if used), `FRONTEND_ORIGIN`, and `NODE_ENV=production`. `api/index.js` exports the Express app for Vercel.
+- Set `FRONTEND_ORIGIN` to the exact production frontend origin, without a trailing slash.
+- If using Supabase Auth redirects, add local and production URLs in Supabase Authentication → URL Configuration.
+
+## Security checklist
+- RLS is enabled on every user-facing table.
+- `anon` receives no table privileges in this schema.
+- `authenticated` receives only necessary CRUD privileges on user-owned tables and read-only access to active destinations.
+- `destinations` writes are reserved for trusted backend/admin operations.
+- Never expose Supabase secret/service-role keys or AI-provider keys in frontend bundles.
+- Use a separate test project before applying schema changes to production.
+- Back up/commit SQL migrations; dashboard SQL is not a substitute for source control.
+</file>
+
+</files>

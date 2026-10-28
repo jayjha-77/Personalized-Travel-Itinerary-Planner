@@ -1,3 +1,38 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;1,500;1,600&display=swap');
 :root{font-family:'DM Sans',sans-serif;color:#17211d;background:#f6f5f0;font-synthesis:none;text-rendering:optimizeLegibility}
 *{box-sizing:border-box}body{margin:0;min-width:320px}.shell{max-width:1050px;margin:0 auto;padding:28px 28px 24px}.topbar{display:flex;justify-content:space-between;align-items:center;padding:4px 0 28px}.brand{font-weight:700;letter-spacing:-.04em;font-size:20px;display:flex;align-items:center;gap:10px}.brand-icon{display:grid;place-items:center;background:#dce9d9;color:#315c42;border-radius:12px;width:34px;height:34px}.status{font-size:12px;color:#68746b;display:flex;align-items:center;gap:8px}.status i{width:7px;height:7px;border-radius:50%;background:#9ba79d}.hero{padding:62px 48px 44px;border-radius:28px;background:#e4ebdf;position:relative;overflow:hidden}.hero:after{content:"✳";position:absolute;right:52px;top:28px;font-size:170px;color:#c6d8c2;transform:rotate(-12deg)}.eyebrow{font-size:10px;font-weight:700;letter-spacing:.17em;color:#607665;margin:0 0 15px}.hero h1{font-size:clamp(42px,7vw,70px);line-height:1.02;letter-spacing:-.06em;margin:0;position:relative;z-index:1}.hero h1 em{font-family:'Playfair Display',serif;font-weight:500;color:#52775c;letter-spacing:-.045em}.hero-copy{max-width:510px;color:#5e6c61;line-height:1.7;margin:20px 0 24px;position:relative;z-index:1}.chips{display:flex;flex-wrap:wrap;gap:9px;position:relative;z-index:1}.chips span{font-size:11px;background:#f8f8f2;color:#4d6653;padding:9px 12px;border-radius:99px}.panel{background:#fff;border:1px solid #e8e9e2;border-radius:22px;padding:30px;margin:22px 0;box-shadow:0 8px 30px #202d1a08}.panel-heading{display:flex;justify-content:space-between;align-items:center;gap:20px}.panel h2{font-size:24px;letter-spacing:-.04em;margin:0}.muted{font-size:13px;color:#788078;line-height:1.6}.lock{display:grid;place-items:center;background:#f1f4ed;border-radius:14px;width:48px;height:48px;font-size:25px;color:#52775c}.signin-form{margin-top:25px}.signin-form label{display:block;font-size:12px;font-weight:700;margin-bottom:9px}.input-row{display:flex;gap:10px}.input-row input{flex:1;min-width:0;border:1px solid #dfe4da;border-radius:11px;padding:14px 15px;font:inherit;font-size:13px;outline:none}.input-row input:focus{border-color:#76977c;box-shadow:0 0 0 3px #76977c22}button{border:0;background:#294f37;color:white;border-radius:11px;padding:0 18px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;min-height:46px}button:disabled{opacity:.6;cursor:wait}.secondary{background:#eff3eb;color:#355840;padding:0 14px}.message{background:#f5f5ed;color:#4b634e;border-radius:10px;padding:12px;font-size:12px;overflow-wrap:anywhere}.empty{margin-top:24px;background:#f8f9f5;border:1px dashed #dce4d7;border-radius:15px;padding:28px;text-align:center}.empty>span{font-size:28px;color:#6e8a70}.empty strong{display:block;margin:10px 0 5px}.empty p{font-size:12px;color:#788078;margin:0}.trip-list{margin-top:18px}.trip{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 0;border-bottom:1px solid #edf0e9}.trip strong{font-size:14px}.trip p{font-size:12px;color:#788078;margin:6px 0 0}.trip-status{font-size:10px;text-transform:uppercase;letter-spacing:.08em;background:#eff3eb;color:#45634b;padding:7px 9px;border-radius:20px}.refresh{margin-top:16px}footer{display:flex;justify-content:space-between;gap:12px;padding:4px 2px;color:#8b9187;font-size:10px}@media(max-width:620px){.shell{padding:14px}.topbar{align-items:flex-start;gap:10px}.status{max-width:150px;text-align:right}.hero{padding:42px 25px 30px}.hero:after{right:-22px;top:15px;font-size:110px;opacity:.7}.hero-copy{font-size:13px}.panel{padding:22px 18px}.input-row{flex-direction:column}.input-row button{min-height:48px}.panel h2{font-size:21px}footer{flex-direction:column}.trip{align-items:flex-start}}
+
+.trip-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.delete-button {
+  background: #fff0ef;
+  color: #b42318;
+  border: 1px solid #f5c2be;
+  padding: 0 14px;
+  min-height: 34px;
+  border-radius: 8px;
+}
+
+.delete-button:hover {
+  background: #ffe1de;
+}
+
+.delete-button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.trip-preferences {
+  margin-top: 10px;
+}
+
+@media (max-width: 620px) {
+  .trip-actions {
+    flex-wrap: wrap;
+  }
+}
